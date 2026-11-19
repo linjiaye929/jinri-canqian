@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f6f0e4">
+<meta name="description" content="抽今天的中式三餐，到店查看点单搭配，也可以只换其中一餐。">
+<title>今日餐签 · 五日家常餐单</title>
+<style>
+  :root{color-scheme:light;--paper:#fffdf5;--canvas:#f6f0e4;--ink:#292e28;--muted:#676653;--red:#963d28;--line:#d6cfbd;--green:#385b49}
+  *{box-sizing:border-box} body{margin:0;background:var(--canvas);color:var(--ink);font:16px/1.65 system-ui,"PingFang SC","Microsoft YaHei",sans-serif}
+  main{width:min(100% - 32px,620px);margin:0 auto;padding:22px 0 max(40px,env(safe-area-inset-bottom))}
+  button,select{font:inherit;color:inherit;min-height:44px} button,summary,select{cursor:pointer;touch-action:manipulation} button{border:1px solid var(--line);border-radius:8px;padding:7px 13px;background:var(--paper)}
+  :focus-visible{outline:3px solid #2f7164;outline-offset:3px}
+  .mast{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--ink);padding:0 0 12px;gap:8px}
+  .brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px}
+  .seal{display:grid;place-items:center;width:30px;height:30px;background:var(--red);color:white;border-radius:5px;font:700 21px/1 serif}
+  time,.small,.status,.note{font-size:14px;color:var(--muted)} time{font-variant-numeric:tabular-nums}
+  h1,h2,h3,p{margin:0} h1,h2,h3{font-family:"Songti SC","Noto Serif CJK SC","SimSun",serif}
+  h1{font-size:clamp(38px,8vw,58px);letter-spacing:.04em;line-height:1.2} h2{font-size:23px} h3{font-size:21px;line-height:1.5}
+  .hero{position:relative;margin:20px 0 12px;padding:clamp(22px,5vw,36px);border:1px solid #c8b9a0;border-top:5px solid var(--red);background:var(--paper);box-shadow:0 4px 0 -1px #e3d9c7}
+  .intro{margin:12px 0 20px;color:var(--muted)} .primary{border:1px solid var(--red);background:var(--red);color:white;font-weight:700;min-height:48px;padding-inline:23px}
+  .primary:active{background:#73301f}.actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .plain{border:0;background:transparent;color:var(--green);font-weight:600}
+  .sectionhead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:22px 0 10px}
+  .meal{background:var(--paper);border:1px solid var(--line);border-radius:9px;margin:9px 0;padding:15px 17px}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .type{font-size:14px;letter-spacing:.08em;font-weight:750;color:var(--red)} .meal h3{margin:3px 0 6px}
+  .swap{color:var(--green);font-size:14px;font-weight:600}.meal summary,.library summary{color:var(--green);font-weight:600}
+  .order{margin:10px 0 4px;padding:9px 12px;border-left:3px solid #90a18b;background:#f1f4e9}
+  .order b{display:block;font-size:14px;color:var(--green)}
+  summary{min-height:44px;align-content:center} .details{border-top:1px dashed var(--line);padding-top:10px}.details p{margin-bottom:6px}
+  .mark[aria-pressed=true]{color:var(--green);background:#e4ecdf;border-color:#a7bba9}
+  .library{border-block:1px solid var(--line);margin:22px 0 10px;padding:5px 3px}.library article{padding:12px 0;border-top:1px dashed var(--line)} .library h3{font-size:17px;color:var(--red)}
+  .status:empty{display:none}.status{margin-top:8px}.note{margin:8px 0}
+  dialog{width:min(92vw,440px);max-height:85vh;overflow:auto;border:1px solid var(--line);border-radius:14px;background:var(--paper);padding:22px;color:var(--ink)} dialog::backdrop{background:#29282066}
+  label{display:block;margin:12px 0 4px;font-weight:650} select{width:100%;border:1px solid var(--line);border-radius:7px;background:white;padding:7px} dialog .actions{margin-top:18px}
+  [hidden]{display:none!important}
+  @media(max-width:350px){main{width:calc(100% - 20px)}.hero{padding:16px}.actions{gap:4px}}
+</style>
+<main>
+  <header class="mast"><div class="brand"><span class="seal" aria-hidden="true">食</span>五日家常餐单</div><time id="date"></time></header>
+  <section class="hero"><h1>今日餐签</h1><p class="intro" id="intro">抽一张签，定下今天的早、中、晚餐。</p>
+    <div class="actions"><button class="primary" id="draw">抽今天三餐</button><button class="plain" id="prefsOpen">我的偏好 · 选填</button></div>
+  </section>
+  <p role="status" class="status" id="status"></p><p id="storageWarn" class="note" hidden>当前浏览器无法保存，餐签仅在本次打开期间保留。</p>
+  <section id="result" hidden><div class="sectionhead"><h2>今天吃什么</h2><span class="small" id="progress"></span></div><p class="note" id="tip"></p><div id="cards"></div></section>
+  <details class="library"><summary>翻看全部 5 天餐单</summary><div id="catalog"></div></details>
+  <p class="note">当天餐签和偏好保存在当前浏览器。餐单供日常搭配参考，外食请向商家核实配料。</p>
+</main>
+<dialog id="prefs"><form id="prefsForm">
+  <h2>我的偏好</h2><p class="small">每项都可留空，随时可以回来调整。</p>
+  <label for="activity">平时活动量</label><select id="activity"><option value="">跳过</option><option>久坐为主</option><option>经常走动</option><option>经常训练</option></select>
+  <label for="goal">近期目标</label><select id="goal"><option value="">跳过</option><option>日常均衡</option><option>减脂期</option><option>增肌或力量训练期</option><option>维持当前状态</option></select>
+  <label for="portion">这餐想吃的份量</label><select id="portion"><option value="">跳过</option><option>小份</option><option>常规份</option><option>加一份主食</option></select>
+  <p class="note">选项会调整餐签下的份量提示。每餐的配料可展开查看。</p>
+  <div class="actions"><button class="primary" type="submit">保存偏好</button><button type="button" id="skip">跳过并返回</button></div>
+</form></dialog>
+<script>
+// Each row is one complete daily menu, ordered breakfast, lunch, dinner.
+const menus = [
+  [
+    ['玉米、茶叶蛋和无糖豆浆','早餐店即可配齐','玉米、鸡蛋、茶叶、大豆；卤汁以店内配方为准。','玉米搭一枚茶叶蛋，豆浆选无糖。'],
+    ['香菇鸡片、炒时蔬配米饭','食堂点两样菜就能搭好','鸡肉、香菇、时蔬、大米、油、盐；酱汁以窗口配方为准。','点一份香菇鸡片和一份青菜，配一碗米饭。'],
+    ['番茄豆腐青菜面','一口锅煮晚餐','番茄、豆腐、青菜、小麦面条、油、盐。','番茄炒软加水，放豆腐和面条煮熟，临出锅放青菜。']
+  ],[
+    ['小米粥、蒸蛋和黄瓜','在家蒸煮或早餐店选配','小米、鸡蛋、黄瓜、盐。','小米粥配蒸熟的鸡蛋羹，黄瓜洗净切条。'],
+    ['土豆烧牛肉、蒜蓉生菜配米饭','食堂或外卖都容易点','土豆、牛肉、蒜、生菜、大米、油、盐；炖汁以商家配方为准。','点土豆烧牛肉，另加一份生菜，米饭按食量取。'],
+    ['虾仁冬瓜汤、杂粮饭','家里有剩余熟饭时很方便','虾仁、冬瓜、姜、大米、糙米、盐。','冬瓜切薄片加姜煮软，放虾仁彻底煮熟，配热透的杂粮饭。']
+  ],[
+    ['全麦馒头、鸡蛋和牛奶','适合带走的早餐','全麦馒头（小麦）、鸡蛋、牛奶。','馒头蒸热，鸡蛋煮熟，搭配一杯原味牛奶。'],
+    ['番茄炒蛋、清炒菜心配米饭','家常食堂组合','番茄、鸡蛋、菜心、大米、油、盐。','点番茄炒蛋和菜心两样菜，配米饭。'],
+    ['香菇鸡肉焖饭配青菜','电饭锅焖一人份','大米、去骨鸡肉、香菇、胡萝卜、青菜、姜、油、盐。','鸡肉切小块，与米、香菇和胡萝卜焖至熟透。青菜另焯熟后配饭。']
+  ],[
+    ['红薯、原味酸奶和水煮蛋','可以提前蒸好红薯','红薯、原味酸奶（奶）、鸡蛋。','蒸熟红薯，搭配冷藏原味酸奶和一枚熟鸡蛋。'],
+    ['清蒸鱼、炒西兰花配米饭','点餐时可请店家另放浇汁','鱼、西兰花、姜葱、大米、油、盐；浇汁以商家配方为准。','选清蒸鱼，搭一份西兰花和米饭，食用时留意鱼刺。'],
+    ['白菜豆腐粉丝煲配小馒头','小锅炖到白菜变软','白菜、豆腐、绿豆粉丝、小麦馒头、姜、油、盐。','白菜、豆腐加水炖软，放泡软的粉丝煮透；馒头蒸热配着吃。']
+  ],[
+    ['青菜鸡丝粥配蒸南瓜','适合想喝热粥的早晨','大米、熟鸡肉、青菜、南瓜、姜、盐。','煮粥时加熟鸡丝和碎青菜，再次煮透，配蒸熟的南瓜。'],
+    ['青椒肉丝、炒包菜配米饭','食堂里好找的家常菜','青椒、猪肉、包菜、大米、油、盐；腌料以商家配方为准。','选青椒肉丝和清炒包菜，不吃辣可向窗口确认青椒品种。'],
+    ['菌菇鸡蛋汤面','下班后一锅煮熟','香菇、鸡蛋、小麦面条、小白菜、姜、盐。','菌菇切片煮熟，加面条和青菜，淋入蛋液并煮至凝固熟透。']
+  ]
+];
+const names = ['早餐','午餐','晚餐'];
+// Restaurant equivalents follow the same day and meal order as the menu.
+const ordering = [
+  ['早餐铺点玉米、茶叶蛋和一杯无糖豆浆。玉米卖完了，可以换一个杂粮馒头。','食堂点香菇鸡片、一份当季青菜和米饭。没有鸡片时，可以问有没有其他鸡肉小炒。','面馆点番茄汤面，加豆腐和青菜。没有豆腐可以问能否加蛋。'],
+  ['粥铺点小米粥、蒸蛋和一份黄瓜。蒸蛋卖完时可以换水煮蛋。','快餐店点土豆牛肉饭，加一份青菜。套餐只有米饭和浇头时，青菜单点即可。','家常菜馆点冬瓜虾仁汤和一份饭。想在快餐店解决，可以选虾仁蔬菜饭。'],
+  ['早餐店点杂粮馒头和水煮蛋，再配一盒原味牛奶。','食堂点番茄炒蛋、一份绿叶菜和米饭。菜心卖完时，换当天供应的青菜。','焖饭店点香菇鸡肉饭，另配一份青菜。只有鸡腿饭时也可以这样搭。'],
+  ['便利店拿蒸红薯、原味酸奶和一枚熟鸡蛋。没有红薯时，可以换熟玉米。','食堂或蒸菜馆点蒸鱼、西兰花和米饭。西兰花卖完时换一份时蔬。','砂锅店点白菜豆腐粉丝煲，按食量配小馒头。只有米饭时也可用小碗饭搭配。'],
+  ['粥店点青菜鸡丝粥和一份蒸南瓜。没有南瓜时可选一小段蒸红薯。','食堂点青椒肉丝、炒包菜和米饭。不能吃辣，可先问青椒品种或换不辣的肉丝小炒。','面馆点菌菇汤面，加一枚蛋和一份青菜。菜单上只有青菜面时，可以询问能否加菌菇。']
+];
+const $ = id => document.getElementById(id);
+const key = 'today-meal-ticket-v1';
+const settings = ['activity','goal','portion'];
+function fresh(){return {date:'', plan:null, eaten:[false,false,false], used:[], seen:[[],[],[]], preferences:{}}}
+function validIndex(i){return Number.isInteger(i) && i>=0 && i<menus.length}
+function read(){
+  try {
+    const saved=JSON.parse(localStorage.getItem(key));
+    if(!saved || typeof saved!=='object') return fresh();
+    const data=fresh();
+    data.date=typeof saved.date==='string'?saved.date:'';
+    if(Array.isArray(saved.plan) && saved.plan.length===3 && saved.plan.every(validIndex)){
+      data.plan=saved.plan;
+      data.eaten=names.map((_,i)=>saved.eaten?.[i]===true);
+      data.seen=saved.plan.map((current,i)=>{
+        const history=saved.seen?.[i];
+        return [...new Set([current,...(Array.isArray(history)?history.filter(validIndex):[])])];
+      });
+    }
+    data.used=Array.isArray(saved.used)?[...new Set(saved.used.filter(validIndex))]:[];
+    for(const id of settings){
+      if([...$(id).options].some(o=>o.value===saved.preferences?.[id])) data.preferences[id]=saved.preferences[id];
+    }
+    return data;
+  } catch {return fresh()}
+}
+let state=read();
+function save(){try{localStorage.setItem(key,JSON.stringify(state));$('storageWarn').hidden=true}catch{$('storageWarn').hidden=false}}
+function today(){
+  const now=new Date();
+  return [now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
+}
+function updateDate(){
+  const day=today();
+  if(state.date===day) return false;
+  state.date=day;state.plan=null;state.eaten=[false,false,false];state.seen=[[],[],[]];save();return true;
+}
+function pick(items){return items[Math.floor(Math.random()*items.length)]}
+function message(text){$('status').textContent=text}
+function advice(){
+  const {activity,goal,portion}=state.preferences;
+  const hints=[];
+  if(activity==='久坐为主') hints.push('久坐日可先按平时食量备餐。');
+  if(activity==='经常走动') hints.push('走动多的一天，可留一份主食按饥饿感添取。');
+  if(activity==='经常训练') hints.push('训练日可按训练时间安排这三餐。');
+  if(goal==='减脂期') hints.push('点餐时可请店家将酱汁另放。');
+  if(goal==='增肌或力量训练期') hints.push('看看这餐的鱼、肉、蛋或豆制品是否方便备齐。');
+  if(goal==='日常均衡'||goal==='维持当前状态') hints.push('三餐可按平时的作息和食量安排。');
+  if(portion) hints.push('你选的份量：'+portion+'。');
+  return hints.join(' ');
+}
+function renderCard(i){
+  const meal=menus[state.plan[i]][i];
+  return '<article class="meal" data-slot="'+i+'"><div class="row"><span class="type">'+names[i]+'</span><button class="swap" data-action="swap" aria-label="只换'+names[i]+'">换一餐 ↻</button></div>'
+    +'<h3>'+meal[0]+'</h3><div class="order"><b>在外面怎么点</b>'+ordering[state.plan[i]][i]+'</div><details><summary>配料与吃法</summary><div class="details"><p>'+meal[1]+'</p><p>'+meal[2]+'</p><p>'+meal[3]+'</p></div></details>'
+    +'<button class="mark" data-action="eat" aria-label="'+names[i]+'已经吃了" aria-pressed="'+state.eaten[i]+'">'+(state.eaten[i]?'✓ 已吃过':'标记吃过')+'</button></article>';
+}
+function render(){
+  $('date').dateTime=state.date;
+  $('date').textContent=new Intl.DateTimeFormat('zh-CN',{month:'long',day:'numeric',weekday:'short'}).format(new Date());
+  $('result').hidden=!state.plan;
+  $('draw').hidden=!!state.plan;
+  $('intro').textContent=state.plan?'今天的三餐已抽好，想换口味可以只换一餐。':'抽一张签，定下今天的早、中、晚餐。';
+  $('cards').innerHTML=state.plan?names.map((_,i)=>renderCard(i)).join(''):'';
+  $('tip').textContent=advice();$('tip').hidden=!$('tip').textContent;
+  progress();
+}
+function progress(){$('progress').textContent='已吃 '+state.eaten.filter(Boolean).length+' / 3 餐'}
+$('catalog').innerHTML=menus.map((day,i)=>'<article><h3>第 '+(i+1)+' 套</h3>'+day.map((meal,j)=>'<p>'+names[j]+' · '+meal[0]+'</p>').join('')+'</article>').join('');
+$('draw').onclick=()=>{
+  updateDate();
+  if(!state.plan){
+    if(state.used.length>=menus.length) state.used=[];
+    const index=pick(menus.map((_,i)=>i).filter(i=>!state.used.includes(i)));
+    state.used.push(index);state.plan=[index,index,index];state.seen=names.map(()=>[index]);save();
+  }
+  render();message('今日餐签已抽好。');$('cards').querySelector('button').focus({preventScroll:true});
+};
+$('cards').onclick=event=>{
+  const button=event.target.closest('button[data-action]');if(!button) return;
+  if(updateDate()){render();message('新的一天到了，可以抽今天的餐签。');return}
+  const card=button.closest('article'), i=Number(card.dataset.slot);
+  if(button.dataset.action==='swap'){
+    if(state.seen[i].length===menus.length) state.seen[i]=[state.plan[i]];
+    const remaining=menus.map((_,index)=>index).filter(index=>!state.seen[i].includes(index));
+    state.plan[i]=pick(remaining);
+    state.seen[i].push(state.plan[i]);
+    state.eaten[i]=false;save();card.outerHTML=renderCard(i);
+    $('cards').children[i].querySelector('.swap').focus({preventScroll:true});
+    message(names[i]+'已换成'+menus[state.plan[i]][i][0]+'。');
+  }else{
+    state.eaten[i]=!state.eaten[i];save();button.setAttribute('aria-pressed',String(state.eaten[i]));
+    button.textContent=state.eaten[i]?'✓ 已吃过':'标记吃过';message(names[i]+(state.eaten[i]?'已记录。':'已取消记录。'));
+  }
+  progress();
+};
+$('prefsOpen').onclick=()=>{for(const id of settings) $(id).value=state.preferences[id]||'';$('prefs').showModal()};
+$('skip').onclick=()=>$('prefs').close();
+$('prefsForm').onsubmit=event=>{
+  event.preventDefault();updateDate();for(const id of settings) state.preferences[id]=$(id).value;
+  save();$('prefs').close();render();message('偏好已保存。');
+};
+function refresh(){if(updateDate()){render();message('')}}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden) refresh()});
+window.addEventListener('storage',event=>{if(event.key===key || event.key===null){state=read();updateDate();render();message('')}});
+setInterval(refresh,30000);
+updateDate();render();
+</script>
+</html>
